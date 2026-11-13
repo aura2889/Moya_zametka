@@ -378,7 +378,7 @@ function pickMine(){
   D.forEach(function(s){ if(s.id==='tilek')return;
     if(s.priv){ if(!s.locked) (s.quotes||[]).forEach(function(q){pool.push({t:q.t,s:q.s,k:'Өмір'})}); return }
     s.subs.forEach(function(b){ if(b.id==='azil'||b.id==='messi')return;
-      b.items.forEach(function(it){ if(it.t.length<=300) pool.push({t:it.t,s:'Даналық · '+it.w,k:'Даналық'}) }) }) });
+      b.items.forEach(function(it){ if(it.t.length<=300&&it.t.length>=40) pool.push({t:it.t,s:'Даналық · '+it.w,k:'Даналық'}) }) }) });
   if(pool.length) mineItem=pickFrom(pool,'zm_recent_mine');
 }
 var WD=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
