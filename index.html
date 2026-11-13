@@ -178,7 +178,7 @@ D.push(LIFE);
 function assignKeys(s){s.subs.forEach(function(b){b.items.forEach(function(it,i){it._k=s.id+'/'+b.id+'/'+i;it._s=s;it._b=b})})}
 D.forEach(function(s){if(!s.priv)assignKeys(s)});
 var FAV = lsGet('zm_fav',{});
-var GOALS = lsGet('zm_goals',{});
+var GOALS = lsGet('zm_goals_unused',{});
 var st = lsGet('zm_state',{tab:D[0].id,sub:{}});
 var fs = lsGet('zm_fs',17), query='';
 
@@ -271,11 +271,10 @@ function cardHTML(it,showPath,q){
   return h+'</div></article>';
 }
 function goalHTML(it){
-  var done=!!GOALS[it._k], h='<article class="card goal'+(done?' done':'')+'" data-k="'+it._k+'">';
-  h+='<button class="ck" data-a="goal" aria-label="Достигнуто">✓</button><div><div class="gt">'+esc(it.g)+'</div><div class="pills">';
+  var h='<article class="card" data-k="'+it._k+'"><div class="gt" style="font-weight:600">'+esc(it.g)+'</div><div class="pills">';
   if(it.a) h+='<span class="pill gold">'+fmtNum(it.a)+' ₸</span>';
-  if(it.d){var c=countdown(it.d);h+='<span class="pill">📅 '+fmtDate(it.d)+'</span>'+(done?'':'<span class="pill'+(c.late?' red':'')+'">'+c.txt+'</span>')}
-  return h+'</div></div></article>';
+  if(it.d) h+='<span class="pill">📅 к '+it.d.slice(0,4)+' году</span>';
+  return h+'</div></article>';
 }
 function timelineHTML(items){
   var arr=items.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0}), h='<div class="tl">';
@@ -290,7 +289,7 @@ function byKey(k){return allItems(true).filter(function(i){return i._k===k})[0]}
 function lockHTML(){
   var ok=window.PRIVATE&&window.crypto&&crypto.subtle;
   return '<div class="lock"><div class="big">🔒</div><h2>Өмір · личные записи</h2><p>Цели, дневник, семья, финансы. Хранятся в зашифрованном виде — без кода их не прочитать, даже если репозиторий публичный.</p>'+
-  (ok?'<input id="pw" type="password" placeholder="код доступа" autocomplete="current-password" autocapitalize="off" spellcheck="false"><label><input type="checkbox" id="rem" checked> запомнить на этом устройстве</label><button class="go" id="unl">Открыть</button><div class="err" id="err"></div>'
+  (ok?'<input id="pw" type="password" inputmode="numeric" placeholder="код"  autocomplete="current-password" autocapitalize="off" spellcheck="false"><label><input type="checkbox" id="rem" checked> запомнить на этом устройстве</label><button class="go" id="unl">Открыть</button><div class="err" id="err"></div>'
      :'<div class="err">Нужен https-адрес (GitHub Pages) и современный браузер</div>')+'</div>';
 }
 function tryUnlock(){
@@ -318,7 +317,7 @@ function renderMain(){
     if(s.priv&&s.locked){m.innerHTML=lockHTML();return}
     var b=curSub(s);
     h+='<div class="crumb"><b>'+b.icon+' '+esc(b.title)+'</b>'+(b.kind==='timeline'?'':' · '+b.items.length)+(s.priv?'<button class="relock" id="relock">🔒 Закрыть</button>':'')+'</div>';
-    if(b.note) h+='<div class="note">'+(b.kind==='timeline'?'<b>🔍 Взгляд со стороны</b>':'')+esc(b.note.replace(/^Взгляд со стороны \(Claude\), по твоим записям\.\n\n/,''))+'</div>';
+    if(b.note) h+='<div class="note">'+(b.kind==='timeline'?'<b>🧭 Путь</b>':'')+esc(b.note.replace(/^Взгляд со стороны \(Claude\), по твоим записям\.\n\n/,''))+'</div>';
     if(b.kind==='goals') b.items.forEach(function(i){h+=goalHTML(i)});
     else if(b.kind==='timeline') h+=timelineHTML(b.items);
     else b.items.forEach(function(i){h+=cardHTML(i,false)});
@@ -381,10 +380,6 @@ $('main').addEventListener('click',function(e){
   else if(a==='copy'){copyText(it.w+'\n\n'+it.t)}
   else if(a==='share'){
     if(navigator.share){navigator.share({title:it.w,text:it.t}).catch(function(){})}else copyText(it.t);
-  }
-  else if(a==='goal'){
-    if(GOALS[it._k]) delete GOALS[it._k]; else GOALS[it._k]=true;
-    lsSet('zm_goals',GOALS);renderMain();
   }
   else if(a==='fav'){
     if(FAV[it._k]) delete FAV[it._k]; else FAV[it._k]=true;
