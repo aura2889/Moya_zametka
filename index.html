@@ -208,18 +208,18 @@ function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
 
 /* приватный раздел (зашифрован в private.enc.js) */
-var LIFE={id:'life',title:'Өмір',icon:'🧭',priv:true,locked:true,subs:[]};
-D.push(LIFE);
+var LIFE=D.filter(function(s){return s.id==='life'})[0];
+var SECRET=null;
 
 function assignKeys(s){s.subs.forEach(function(b){b.items.forEach(function(it,i){it._k=s.id+'/'+b.id+'/'+i;it._s=s;it._b=b})})}
-D.forEach(function(s){if(!s.priv)assignKeys(s)});
+D.forEach(assignKeys);
 var FAV = lsGet('zm_fav',{});
 var GOALS = lsGet('zm_goals_unused',{});
 var st = lsGet('zm_state',{tab:'home',sub:{}}); st.tab='home';
 var fs = lsGet('zm_fs',17), query='';
 
 function favCount(){return Object.keys(FAV).filter(function(k){return FAV[k]}).length}
-function allItems(withPriv){var r=[];D.forEach(function(s){if(s.priv&&(s.locked||!withPriv))return;s.subs.forEach(function(b){r=r.concat(b.items)})});return r}
+function allItems(withPriv){var r=[];D.forEach(function(s){s.subs.forEach(function(b){if(b.kind!=='goals')r=r.concat(b.items)})});if(withPriv&&SECRET)r.push(SECRET);return r}
 function save(){lsSet('zm_state',st)}
 function toast(m){var t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},1600)}
 function applyFs(){document.documentElement.style.setProperty('--fs',fs+'px')}
@@ -247,7 +247,8 @@ function decryptWith(key){
   return crypto.subtle.decrypt({name:'AES-GCM',iv:b2u(P.iv)},key,b2u(P.ct)).then(function(buf){return JSON.parse(new TextDecoder().decode(buf))});
 }
 function applyLife(data){
-  LIFE.subs=data.subs;LIFE.quotes=data.quotes||[];LIFE.locked=false;assignKeys(LIFE);
+  var d=LIFE.subs.filter(function(b){return b.id==='diary'})[0];
+  SECRET=data.items[0];SECRET._k='life/diary/secret';SECRET._s=LIFE;SECRET._b=d;SECRET._priv=true;
 }
 function unlockWithPass(pass,remember){
   var P=window.PRIVATE;
@@ -264,7 +265,7 @@ function autoUnlock(){
   var k=lsGet('zm_pk',null); if(!k||!window.PRIVATE||!window.crypto||!crypto.subtle) return Promise.resolve();
   return crypto.subtle.importKey('raw',b2u(k),'AES-GCM',false,['decrypt']).then(decryptWith).then(applyLife).catch(function(){lsDel('zm_pk')});
 }
-function relock(){lsDel('zm_pk');LIFE.locked=true;LIFE.subs=[];st.tab='home';save();render();window.scrollTo(0,0);toast('Закрыто 🔒')}
+function relock(){lsDel('zm_pk');SECRET=null;render();toast('Скрыто 🔒')}
 
 /* ---------- вкладки ---------- */
 function renderTabs(){
@@ -295,7 +296,7 @@ function stickSubs(){ $('subs').style.top=(document.querySelector('header').offs
 
 /* ---------- карточки ---------- */
 function cardHTML(it,showPath,q){
-  var priv=it._s&&it._s.priv;
+  var priv=!!it._priv;
   var long=it.t.length>420||it.t.split('\n').length>9;
   var h='<article class="card" data-k="'+it._k+'">';
   h+='<h3>'+hl(it.w,q)+(it.l?'<span class="tag">'+esc(it.l)+'</span>':'')+'</h3>';
@@ -303,6 +304,7 @@ function cardHTML(it,showPath,q){
   h+='<p class="txt'+(long&&!q?' clamp':'')+'">'+hl(it.t,q)+'</p>';
   if(long&&!q) h+='<button class="more" data-a="more">Толығырақ ▾</button>';
   h+='<div class="act"><button data-a="copy">📋 Көшіру</button><button data-a="share">↗ Бөлісу</button><span class="sp"></span>';
+  if(priv) h+='<button data-a="relock">🔒 Скрыть</button>';
   if(!priv) h+='<button class="fav'+(FAV[it._k]?' on':'')+'" data-a="fav">'+(FAV[it._k]?'★ Таңдаулы':'☆ Таңдау')+'</button>';
   return h+'</div></article>';
 }
@@ -324,14 +326,13 @@ function byKey(k){return allItems(true).filter(function(i){return i._k===k})[0]}
 
 function lockHTML(){
   var ok=window.PRIVATE&&window.crypto&&crypto.subtle;
-  return '<div class="lock"><div class="big">🔒</div><h2>Өмір · личные записи</h2><p>Цели, дневник, семья, финансы. Хранятся в зашифрованном виде — без кода их не прочитать, даже если репозиторий публичный.</p>'+
-  (ok?'<input id="pw" type="password" inputmode="numeric" placeholder="код"  autocomplete="current-password" autocapitalize="off" spellcheck="false"><label><input type="checkbox" id="rem" checked> запомнить на этом устройстве</label><button class="go" id="unl">Открыть</button><div class="err" id="err"></div>'
-     :'<div class="err">Нужен https-адрес (GitHub Pages) и современный браузер</div>')+'</div>';
+  return '<div class="lock" style="margin:0 0 12px;padding:20px 16px"><div class="big" style="font-size:2rem">🔒</div><h2 style="font-size:1.05rem">Вахтадан кейін · 10.08.2026</h2><p>Эта запись зашифрована. Введите код, чтобы открыть.</p>'+
+  (ok?'<input id="pw" type="password" inputmode="numeric" placeholder="код" autocomplete="off" spellcheck="false"><label><input type="checkbox" id="rem" checked> запомнить на этом устройстве</label><button class="go" id="unl">Открыть</button><div class="err" id="err"></div>':'<div class="err">Нужен https-адрес и современный браузер</div>')+'</div>';
 }
 function tryUnlock(){
   var pw=$('pw').value.trim(); if(!pw)return;
   $('err').textContent='Проверяю…';
-  unlockWithPass(pw,$('rem').checked).then(function(){render();window.scrollTo(0,0)}).catch(function(){$('err').textContent='Неверный код';$('pw').select()});
+  unlockWithPass(pw,$('rem').checked).then(function(){render()}).catch(function(){$('err').textContent='Неверный код';$('pw').select()});
 }
 
 function renderMain(){
@@ -354,11 +355,11 @@ function renderMain(){
     var s=curSection(); if(!s){m.innerHTML='';return}
     if(s.priv&&s.locked){m.innerHTML=lockHTML();return}
     var b=curSub(s);
-    h+='<div class="crumb"><b>'+b.icon+' '+esc(b.title)+'</b>'+(b.kind==='timeline'?'':' · '+b.items.length)+(s.priv?'<button class="relock" id="relock">🔒 Закрыть</button>':'')+'</div>';
+    h+='<div class="crumb"><b>'+b.icon+' '+esc(b.title)+'</b>'+(b.kind==='timeline'?'':' · '+b.items.length)+''+'</div>';
     if(b.note) h+='<div class="note">'+(b.kind==='timeline'?'<b>🧭 Путь</b>':'')+esc(b.note.replace(/^Взгляд со стороны \(Claude\), по твоим записям\.\n\n/,''))+'</div>';
     if(b.kind==='goals') b.items.forEach(function(i){h+=goalHTML(i)});
     else if(b.kind==='timeline') h+=timelineHTML(b.items);
-    else b.items.forEach(function(i){h+=cardHTML(i,false)});
+    else{ if(b.id==='diary') h+=(SECRET?cardHTML(SECRET,false):lockHTML()); b.items.forEach(function(i){h+=cardHTML(i,false)}) }
   }
   m.innerHTML=h;
 }
@@ -376,7 +377,8 @@ function pickHero(){ var ex=window.EXTRA||[]; if(ex.length) heroItem=pickFrom(ex
 function pickMine(){
   var pool=[];
   D.forEach(function(s){ if(s.id==='tilek')return;
-    if(s.priv){ if(!s.locked) (s.quotes||[]).forEach(function(q){pool.push({t:q.t,s:q.s,k:'Өмір'})}); return }
+    (s.quotes||[]).forEach(function(q){pool.push({t:q.t,s:q.s,k:'Өмір'})});
+    if(s.id==='life')return;
     s.subs.forEach(function(b){ if(b.id==='azil'||b.id==='messi')return;
       b.items.forEach(function(it){ if(it.t.length<=300&&it.t.length>=40) pool.push({t:it.t,s:'Даналық · '+it.w,k:'Даналық'}) }) }) });
   if(pool.length) mineItem=pickFrom(pool,'zm_recent_mine');
@@ -432,6 +434,7 @@ $('main').addEventListener('click',function(e){
   if(go){st.sub.life=go.dataset.go;save();render();window.scrollTo(0,0);return}
   var b=t.closest('button[data-a]'); if(!b)return;
   var card=b.closest('.card'), it=byKey(card.dataset.k), a=b.dataset.a;
+  if(a==='relock'){relock();return}
   if(a==='more'){var p=card.querySelector('.txt');var c=p.classList.toggle('clamp');b.textContent=c?'Толығырақ ▾':'Жасыру ▴'}
   else if(a==='copy'){copyText(it.w+'\n\n'+it.t)}
   else if(a==='share'){
@@ -467,7 +470,7 @@ window.addEventListener('resize',stickSubs);
 var th=lsGet('zm_theme',null); if(th)document.documentElement.setAttribute('data-theme',th);
 
 applyFs();pickHero();pickMine();render();
-autoUnlock().then(function(){pickMine();render()});
+autoUnlock().then(function(){render()});
 setTimeout(stickSubs,50);
 
 if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
