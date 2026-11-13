@@ -34,7 +34,7 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:var(--fs);line-height:1.55;padding-bottom:env(safe-area-inset-bottom)}
 button{font:inherit;color:inherit;cursor:pointer}
-.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.wrap{max-width:840px;margin:0 auto;padding:0 16px}
 
 /* header */
 header{position:sticky;top:0;z-index:20;background:var(--brand);color:#f6e7bd;padding-top:env(safe-area-inset-top);box-shadow:0 2px 12px rgba(0,0,0,.25)}
@@ -135,6 +135,41 @@ mark{background:var(--goldsoft);color:inherit;border-radius:3px;padding:0 1px;bo
 .ev .card{margin:4px 0 0;padding:12px 14px}
 .ev h3{margin:0 0 4px!important}
 .ev .goto{background:none;border:0;color:var(--gold);padding:4px 0 0;font-size:.82rem;font-weight:650}
+
+@media (min-width:700px){
+  .subs .wrap{flex-wrap:wrap;overflow:visible}
+  .tabs{justify-content:flex-start}
+  .tab{font-size:1rem}
+}
+/* home */
+.cover{margin:16px 0 14px;border-radius:22px;padding:26px 22px 22px;color:#f6e7bd;position:relative;overflow:hidden;
+  background:
+   radial-gradient(circle at 85% 12%,rgba(224,184,96,.28),transparent 45%),
+   linear-gradient(140deg,#0b3031,#17595a 70%,#1d6b61);box-shadow:var(--shadow)}
+.cover::before{content:"";position:absolute;inset:0;opacity:.09;
+  background:repeating-linear-gradient(45deg,#e0b860 0 2px,transparent 2px 22px),repeating-linear-gradient(-45deg,#e0b860 0 2px,transparent 2px 22px)}
+.cover>*{position:relative}
+.cover .hi{font:600 .78rem system-ui;letter-spacing:1.2px;text-transform:uppercase;opacity:.8}
+.cover h1{font-family:Georgia,"Times New Roman",serif;font-size:2.1rem;margin:6px 0 2px;line-height:1.15}
+.cover .sub{opacity:.8;font-size:.95rem}
+.cover .date{margin-top:14px;font-size:.82rem;opacity:.7}
+.today{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 20px 14px;box-shadow:var(--shadow);margin-bottom:16px;position:relative;overflow:hidden}
+.today::before{content:"“";position:absolute;right:14px;top:-30px;font:700 8rem Georgia,serif;color:var(--gold);opacity:.18;line-height:1}
+.today .lab{display:flex;gap:8px;align-items:center;font:700 .7rem system-ui;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
+.today .lab .k{background:var(--goldsoft);padding:2px 8px;border-radius:6px}
+.today .q{font-family:Georgia,"Times New Roman",serif;font-size:1.35em;line-height:1.5;font-style:italic;white-space:pre-wrap;margin:12px 0 8px;position:relative}
+.today .src{font-size:.82rem;color:var(--mute)}
+.today .hb{display:flex;gap:6px;margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.today .hb button{background:none;border:0;border-radius:9px;padding:6px 10px;color:var(--mute);font-size:.86rem}
+.today .hb button:active{background:var(--chip)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:left;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.tile::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,var(--gold),var(--brand2))}
+.tile .ic{font-size:1.9rem}
+.tile .tt{font-family:Georgia,serif;font-weight:700;font-size:1.1rem;margin-top:6px}
+.tile .tc{font-size:.8rem;color:var(--mute);margin-top:2px;line-height:1.35}
+.tile:active{transform:scale(.98)}
+@media (min-width:700px){.tiles{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
@@ -179,7 +214,7 @@ function assignKeys(s){s.subs.forEach(function(b){b.items.forEach(function(it,i)
 D.forEach(function(s){if(!s.priv)assignKeys(s)});
 var FAV = lsGet('zm_fav',{});
 var GOALS = lsGet('zm_goals_unused',{});
-var st = lsGet('zm_state',{tab:D[0].id,sub:{}});
+var st = lsGet('zm_state',{tab:'home',sub:{}}); st.tab='home';
 var fs = lsGet('zm_fs',17), query='';
 
 function favCount(){return Object.keys(FAV).filter(function(k){return FAV[k]}).length}
@@ -228,11 +263,11 @@ function autoUnlock(){
   var k=lsGet('zm_pk',null); if(!k||!window.PRIVATE||!window.crypto||!crypto.subtle) return Promise.resolve();
   return crypto.subtle.importKey('raw',b2u(k),'AES-GCM',false,['decrypt']).then(decryptWith).then(applyLife).catch(function(){lsDel('zm_pk')});
 }
-function relock(){lsDel('zm_pk');LIFE.locked=true;LIFE.subs=[];st.tab=D[0].id;save();render();window.scrollTo(0,0);toast('Закрыто 🔒')}
+function relock(){lsDel('zm_pk');LIFE.locked=true;LIFE.subs=[];st.tab='home';save();render();window.scrollTo(0,0);toast('Закрыто 🔒')}
 
 /* ---------- вкладки ---------- */
 function renderTabs(){
-  var h='';
+  var h='<button class="tab'+(st.tab==='home'&&!query?' on':'')+'" data-t="home">🏠 Басты</button>';
   D.forEach(function(s){
     var n=s.priv&&s.locked?'🔒':s.subs.reduce(function(a,b){return a+b.items.length},0);
     h+='<button class="tab'+(st.tab===s.id&&!query?' on':'')+'" data-t="'+s.id+'">'+s.icon+' '+esc(s.title)+'<span class="n">'+n+'</span></button>';
@@ -307,6 +342,8 @@ function renderMain(){
     if(!r.length) h+='<div class="empty"><div class="big">🔎</div>Ничего не найдено</div>';
     r.slice(0,80).forEach(function(i){h+=cardHTML(i,true,query)});
     if(r.length>80) h+='<div class="empty">Показаны первые 80 — уточните запрос</div>';
+  }else if(st.tab==='home'){
+    h=homeHTML();
   }else if(st.tab==='fav'){
     var f=allItems(false).filter(function(i){return FAV[i._k]});
     h+='<div class="crumb"><b>⭐ Таңдаулы</b> · '+f.length+'</div>';
@@ -325,24 +362,34 @@ function renderMain(){
   m.innerHTML=h;
 }
 
-/* ---------- мысль дня ---------- */
+/* ---------- главная ---------- */
 var heroItem=null;
 function pickHero(){
   var pool=[];
   D.forEach(function(s){ if(s.priv||s.id==='tilek')return; s.subs.forEach(function(b){ if(b.id==='azil'||b.id==='messi')return;
-    b.items.forEach(function(it){ if(it.t.length<=300) pool.push({t:it.t,s:'Из вашей коллекции · '+it.w}) }) }) });
-  var ex=window.EXTRA||[];
-  var useEx = ex.length && Math.random()<0.4;
-  var src = useEx?ex:pool; if(!src.length) src=pool.concat(ex);
-  var n=src[Math.floor(Math.random()*src.length)];
-  if(heroItem&&src.length>1&&n.t===heroItem.t) n=src[(src.indexOf(n)+1)%src.length];
-  heroItem=n;
+    b.items.forEach(function(it){ if(it.t.length<=300) pool.push({t:it.t,s:'Из вашей коллекции · '+it.w,k:'Даналық'}) }) }) });
+  var ex=window.EXTRA||[], src=(ex.length&&Math.random()<0.6)?ex:pool; if(!src.length) src=pool.concat(ex);
+  var recent=lsGet('zm_recent',[]), cand=src.filter(function(x){return recent.indexOf(x.t)<0});
+  if(!cand.length){cand=src;recent=[]}
+  heroItem=cand[Math.floor(Math.random()*cand.length)];
+  recent.push(heroItem.t); if(recent.length>40) recent=recent.slice(-40); lsSet('zm_recent',recent);
 }
-function renderHero(){
-  var el=$('hero');
-  if(query||st.tab==='life'||!heroItem){el.innerHTML='';return}
-  el.innerHTML='<section class="hero"><div class="lab">✦ Мысль дня</div><p class="q">'+esc(heroItem.t)+'</p><div class="src">— '+esc(heroItem.s)+'</div><div class="hb"><button data-h="again">↻ Ещё</button><button data-h="copy">📋 Көшіру</button></div></section>';
+var WD=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function homeHTML(){
+  var d=new Date(), hr=d.getHours();
+  var hi=hr<5?'Түнгі сағат':hr<12?'Қайырлы таң':hr<18?'Қайырлы күн':'Қайырлы кеш';
+  var h='<section class="cover"><div class="hi">'+hi+'</div><h1>Моя заметка</h1><div class="sub">Тілектер · Даналық · Өмір</div><div class="date">'+WD[d.getDay()]+', '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()+'</div></section>';
+  if(heroItem) h+='<section class="today"><div class="lab">✦ Мысль дня <span class="k">'+esc(heroItem.k||'')+'</span></div><p class="q">'+esc(heroItem.t)+'</p><div class="src">— '+esc(heroItem.s)+'</div><div class="hb"><button data-h="again">↻ Ещё</button><button data-h="copy">📋 Көшіру</button></div></section>';
+  h+='<div class="tiles">';
+  D.forEach(function(s){
+    var n=s.priv&&s.locked?'🔒 закрыто':s.subs.reduce(function(a,b){return a+b.items.length},0)+' записей';
+    var d2=s.priv?'Цели, хронология, дневник':s.subs.slice(0,3).map(function(b){return b.title.split(' · ')[0]}).join(', ')+'…';
+    h+='<button class="tile" data-tile="'+s.id+'"><div class="ic">'+s.icon+'</div><div class="tt">'+esc(s.title)+'</div><div class="tc">'+n+'<br>'+esc(d2)+'</div></button>';
+  });
+  h+='<button class="tile" data-tile="fav"><div class="ic">⭐</div><div class="tt">Таңдаулы</div><div class="tc">'+favCount()+' в избранном<br>ваши отметки</div></button>';
+  return h+'</div>';
 }
+function renderHero(){$('hero').innerHTML=''}
 function render(){renderTabs();renderSubs();renderMain();renderHero();stickSubs()}
 
 /* ---------- события ---------- */
@@ -359,17 +406,16 @@ $('q').addEventListener('input',function(){
   query=this.value.trim();$('sbox').classList.toggle('has',!!this.value);render();
 });
 $('qc').addEventListener('click',function(){$('q').value='';query='';$('sbox').classList.remove('has');render()});
-$('hero').addEventListener('click',function(e){
-  var b=e.target.closest('button[data-h]'); if(!b)return;
-  if(b.dataset.h==='again'){pickHero();renderHero()}
-  else copyText(heroItem.t+'\n— '+heroItem.s);
-});
 function copyText(txt){
   function fallback(){var ta=document.createElement('textarea');ta.value=txt;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('Скопировано ✓')}catch(x){toast('Не удалось')}ta.remove()}
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){toast('Скопировано ✓')},fallback)}else fallback();
 }
 $('main').addEventListener('click',function(e){
   var t=e.target;
+  var hb=t.closest('button[data-h]');
+  if(hb){ if(hb.dataset.h==='again'){pickHero();renderMain()} else copyText(heroItem.t+'\n— '+heroItem.s); return }
+  var tl=t.closest('button[data-tile]');
+  if(tl){st.tab=tl.dataset.tile;save();render();window.scrollTo(0,0);return}
   if(t.id==='unl'){tryUnlock();return}
   if(t.id==='relock'){relock();return}
   var go=t.closest('button[data-go]');
@@ -406,9 +452,10 @@ $('rand').addEventListener('click',function(){
   if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='2px solid var(--gold)';setTimeout(function(){el.style.outline=''},1800)}
 });
 window.addEventListener('resize',stickSubs);
+['tabs','subsin'].forEach(function(id){var el=$(id);el.addEventListener('wheel',function(e){if(el.scrollWidth>el.clientWidth&&Math.abs(e.deltaY)>Math.abs(e.deltaX)){el.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false})});
 
 var th=lsGet('zm_theme',null); if(th)document.documentElement.setAttribute('data-theme',th);
-if(!D.some(function(s){return s.id===st.tab})&&st.tab!=='fav') st.tab=D[0].id;
+
 applyFs();pickHero();render();
 autoUnlock().then(function(){render()});
 setTimeout(stickSubs,50);
