@@ -157,6 +157,7 @@ mark{background:var(--goldsoft);color:inherit;border-radius:3px;padding:0 1px;bo
 .today::before{content:"“";position:absolute;right:14px;top:-30px;font:700 8rem Georgia,serif;color:var(--gold);opacity:.18;line-height:1}
 .today .lab{display:flex;gap:8px;align-items:center;font:700 .7rem system-ui;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
 .today .lab .k{background:var(--goldsoft);padding:2px 8px;border-radius:6px}
+.today.mine{border-left:4px solid var(--gold)}
 .today .q{font-family:Georgia,"Times New Roman",serif;font-size:1.35em;line-height:1.5;font-style:italic;white-space:pre-wrap;margin:12px 0 8px;position:relative}
 .today .src{font-size:.82rem;color:var(--mute)}
 .today .hb{display:flex;gap:6px;margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
@@ -246,7 +247,7 @@ function decryptWith(key){
   return crypto.subtle.decrypt({name:'AES-GCM',iv:b2u(P.iv)},key,b2u(P.ct)).then(function(buf){return JSON.parse(new TextDecoder().decode(buf))});
 }
 function applyLife(data){
-  LIFE.subs=data.subs;LIFE.locked=false;assignKeys(LIFE);
+  LIFE.subs=data.subs;LIFE.quotes=data.quotes||[];LIFE.locked=false;assignKeys(LIFE);
 }
 function unlockWithPass(pass,remember){
   var P=window.PRIVATE;
@@ -363,16 +364,22 @@ function renderMain(){
 }
 
 /* ---------- главная ---------- */
-var heroItem=null;
-function pickHero(){
-  var pool=[];
-  D.forEach(function(s){ if(s.priv||s.id==='tilek')return; s.subs.forEach(function(b){ if(b.id==='azil'||b.id==='messi')return;
-    b.items.forEach(function(it){ if(it.t.length<=300) pool.push({t:it.t,s:'Из вашей коллекции · '+it.w,k:'Даналық'}) }) }) });
-  var ex=window.EXTRA||[], src=(ex.length&&Math.random()<0.6)?ex:pool; if(!src.length) src=pool.concat(ex);
-  var recent=lsGet('zm_recent',[]), cand=src.filter(function(x){return recent.indexOf(x.t)<0});
+var heroItem=null, mineItem=null;
+function pickFrom(src,key){
+  var recent=lsGet(key,[]), cand=src.filter(function(x){return recent.indexOf(x.t)<0});
   if(!cand.length){cand=src;recent=[]}
-  heroItem=cand[Math.floor(Math.random()*cand.length)];
-  recent.push(heroItem.t); if(recent.length>40) recent=recent.slice(-40); lsSet('zm_recent',recent);
+  var it=cand[Math.floor(Math.random()*cand.length)];
+  recent.push(it.t); if(recent.length>40) recent=recent.slice(-40); lsSet(key,recent);
+  return it;
+}
+function pickHero(){ var ex=window.EXTRA||[]; if(ex.length) heroItem=pickFrom(ex,'zm_recent') }
+function pickMine(){
+  var pool=[];
+  D.forEach(function(s){ if(s.id==='tilek')return;
+    if(s.priv){ if(!s.locked) (s.quotes||[]).forEach(function(q){pool.push({t:q.t,s:q.s,k:'Өмір'})}); return }
+    s.subs.forEach(function(b){ if(b.id==='azil'||b.id==='messi')return;
+      b.items.forEach(function(it){ if(it.t.length<=300) pool.push({t:it.t,s:'Даналық · '+it.w,k:'Даналық'}) }) }) });
+  if(pool.length) mineItem=pickFrom(pool,'zm_recent_mine');
 }
 var WD=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
 function homeHTML(){
@@ -380,6 +387,7 @@ function homeHTML(){
   var hi=hr<5?'Түнгі сағат':hr<12?'Қайырлы таң':hr<18?'Қайырлы күн':'Қайырлы кеш';
   var h='<section class="cover"><div class="hi">'+hi+'</div><h1>Моя заметка</h1><div class="sub">Тілектер · Даналық · Өмір</div><div class="date">'+WD[d.getDay()]+', '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()+'</div></section>';
   if(heroItem) h+='<section class="today"><div class="lab">✦ Мысль дня <span class="k">'+esc(heroItem.k||'')+'</span></div><p class="q">'+esc(heroItem.t)+'</p><div class="src">— '+esc(heroItem.s)+'</div><div class="hb"><button data-h="again">↻ Ещё</button><button data-h="copy">📋 Көшіру</button></div></section>';
+  if(mineItem) h+='<section class="today mine"><div class="lab">📖 Из моих записей <span class="k">'+esc(mineItem.k||'')+'</span></div><p class="q">'+esc(mineItem.t)+'</p><div class="src">— '+esc(mineItem.s)+'</div><div class="hb"><button data-h="again2">↻ Ещё</button><button data-h="copy2">📋 Көшіру</button></div></section>';
   h+='<div class="tiles">';
   D.forEach(function(s){
     var n=s.priv&&s.locked?'🔒 закрыто':s.subs.reduce(function(a,b){return a+b.items.length},0)+' записей';
@@ -413,7 +421,9 @@ function copyText(txt){
 $('main').addEventListener('click',function(e){
   var t=e.target;
   var hb=t.closest('button[data-h]');
-  if(hb){ if(hb.dataset.h==='again'){pickHero();renderMain()} else copyText(heroItem.t+'\n— '+heroItem.s); return }
+  if(hb){ var hv=hb.dataset.h;
+    if(hv==='again'){pickHero();renderMain()} else if(hv==='again2'){pickMine();renderMain()}
+    else if(hv==='copy2') copyText(mineItem.t+'\n— '+mineItem.s); else copyText(heroItem.t+'\n— '+heroItem.s); return }
   var tl=t.closest('button[data-tile]');
   if(tl){st.tab=tl.dataset.tile;save();render();window.scrollTo(0,0);return}
   if(t.id==='unl'){tryUnlock();return}
@@ -456,8 +466,8 @@ window.addEventListener('resize',stickSubs);
 
 var th=lsGet('zm_theme',null); if(th)document.documentElement.setAttribute('data-theme',th);
 
-applyFs();pickHero();render();
-autoUnlock().then(function(){render()});
+applyFs();pickHero();pickMine();render();
+autoUnlock().then(function(){pickMine();render()});
 setTimeout(stickSubs,50);
 
 if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
