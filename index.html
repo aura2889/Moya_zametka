@@ -388,8 +388,8 @@ function homeHTML(){
   var d=new Date(), hr=d.getHours();
   var hi=hr<5?'Түнгі сағат':hr<12?'Қайырлы таң':hr<18?'Қайырлы күн':'Қайырлы кеш';
   var h='<section class="cover"><div class="hi">'+hi+'</div><h1>Моя заметка</h1><div class="sub">Тілектер · Даналық · Өмір</div><div class="date">'+WD[d.getDay()]+', '+d.getDate()+' '+MON[d.getMonth()]+' '+d.getFullYear()+'</div></section>';
-  if(heroItem) h+='<section class="today"><div class="lab">✦ Мысль дня <span class="k">'+esc(heroItem.k||'')+'</span></div><p class="q">'+esc(heroItem.t)+'</p><div class="src">— '+esc(heroItem.s)+'</div><div class="hb"><button data-h="again">↻ Ещё</button><button data-h="copy">📋 Көшіру</button></div></section>';
   if(mineItem) h+='<section class="today mine"><div class="lab">📖 Из моих записей <span class="k">'+esc(mineItem.k||'')+'</span></div><p class="q">'+esc(mineItem.t)+'</p><div class="src">— '+esc(mineItem.s)+'</div><div class="hb"><button data-h="again2">↻ Ещё</button><button data-h="copy2">📋 Көшіру</button></div></section>';
+  if(heroItem) h+='<section class="today"><div class="lab">✦ Мысль дня <span class="k">'+esc(heroItem.k||'')+'</span></div><p class="q">'+esc(heroItem.t)+'</p><div class="src">— '+esc(heroItem.s)+'</div><div class="hb"><button data-h="again">↻ Ещё</button><button data-h="copy">📋 Көшіру</button></div></section>';
   h+='<div class="tiles">';
   D.forEach(function(s){
     var n=s.priv&&s.locked?'🔒 закрыто':s.subs.reduce(function(a,b){return a+b.items.length},0)+' записей';
